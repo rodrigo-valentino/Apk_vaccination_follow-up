@@ -15,7 +15,7 @@ Funcionalidades
 
 Tecnologias utilizadas
 
-- Linguagem: **Dart, C+**
+- Linguagem: **Dart, C++**
 - Banco de dados: **SQLite**
 - Versionamento: **Git + GitHub**
 - (opcional) Interface: **Android Studio**
