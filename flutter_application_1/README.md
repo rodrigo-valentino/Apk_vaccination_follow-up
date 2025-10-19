@@ -1,16 +1,25 @@
-# flutter_application_1
+Acompanhamento Vacinal Infantil
 
-A new Flutter project.
+Aplicativo para controle e acompanhamento de vacinas infantis, desenvolvido como projeto de estudo e portfólio.  
+Permite registrar vacinas, acompanhar o calendário vacinal e receber alertas de doses pendentes.
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
+Funcionalidades
 
-A few resources to get you started if this is your first Flutter project:
+- Cadastro de crianças e vacinas
+- Acompanhamento do status (pendente, atrasada, vacinada)
+- Histórico de vacinas aplicadas
+- Notificações e lembretes
+- Relatórios de vacinação
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Tecnologias utilizadas
+
+- Linguagem: **Dart** (especifique)
+- Banco de dados: **SQLite**
+- Versionamento: **Git + GitHub**
+- (opcional) Interface: **Android Studio**
+
+
+## 📁 Estrutura do projeto
+
