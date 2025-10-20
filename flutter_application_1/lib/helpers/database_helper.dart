@@ -1,11 +1,11 @@
-// lib/helpers/database_helper.dart
+// lib/helpers/database_helper.dart - CÓDIGO COMPLETO E CORRIGIDO
 
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/crianca.dart';
+import '../models/vacina_aplicada.dart'; // Import necessário
 
 class DatabaseHelper {
-  // Padrão Singleton: garante que teremos apenas uma instância do nosso banco de dados
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
@@ -18,17 +18,16 @@ class DatabaseHelper {
     return _database!;
   }
 
-  // Inicializa o banco de dados
   Future<Database> _initDB() async {
     String path = join(await getDatabasesPath(), 'vacinacao.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
-  // Cria a tabela quando o banco de dados é criado pela primeira vez
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE criancas(
@@ -37,45 +36,75 @@ class DatabaseHelper {
         dataNascimento TEXT NOT NULL
       )
     ''');
+    await _createVacinasTable(db);
   }
 
-  // --- Métodos para interagir com a tabela 'criancas' ---
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createVacinasTable(db);
+    }
+  }
 
-  // Inserir uma nova criança
+  Future<void> _createVacinasTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE vacinas_aplicadas(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        criancaId INTEGER NOT NULL,
+        nomeVacina TEXT NOT NULL,
+        dataAplicacao TEXT NOT NULL,
+        FOREIGN KEY (criancaId) REFERENCES criancas (id) ON DELETE CASCADE
+      )
+    ''');
+  }
+
+  // --- Métodos CRUD para Crianças ---
+
   Future<int> addChild(Crianca crianca) async {
     final db = await database;
     return await db.insert('criancas', crianca.toMap());
   }
 
-  // Obter a lista de todas as crianças
   Future<List<Crianca>> getChildren() async {
     final db = await database;
-    // Ordena por nome em ordem alfabética
     final List<Map<String, dynamic>> maps = await db.query('criancas', orderBy: 'nome ASC');
-
-    return List.generate(maps.length, (i) {
-      return Crianca.fromMap(maps[i]);
-    });
+    return List.generate(maps.length, (i) => Crianca.fromMap(maps[i]));
   }
 
-// U - Update: Atualizar uma criança existente
   Future<int> updateChild(Crianca crianca) async {
     final db = await database;
-    return await db.update(
-      'criancas',
-      crianca.toMap(),
-      where: 'id = ?', // Usa o ID para encontrar o registo certo
-      whereArgs: [crianca.id],
-    );
+    return await db.update('criancas', crianca.toMap(), where: 'id = ?', whereArgs: [crianca.id]);
   }
 
-  // D - Delete: Apagar uma criança pelo ID
   Future<int> deleteChild(int id) async {
     final db = await database;
-    return await db.delete(
-      'criancas',
-      where: 'id = ?', // Usa o ID para encontrar o registo certo
-      whereArgs: [id],
-    );
+    return await db.delete('criancas', where: 'id = ?', whereArgs: [id]);
   }
+
+  // --- Métodos CRUD para Vacinas Aplicadas ---
+
+  Future<void> saveVaccine(VacinaAplicada vacina) async {
+    final db = await database;
+    final existing = await db.query(
+      'vacinas_aplicadas',
+      where: 'criancaId = ? AND nomeVacina = ?',
+      whereArgs: [vacina.criancaId, vacina.nomeVacina],
+    );
+    if (existing.isNotEmpty) {
+      await db.update('vacinas_aplicadas', vacina.toMap(), where: 'id = ?', whereArgs: [existing.first['id']]);
+    } else {
+      await db.insert('vacinas_aplicadas', vacina.toMap());
+    }
+  }
+
+  Future<List<VacinaAplicada>> getAppliedVaccines(int criancaId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('vacinas_aplicadas', where: 'criancaId = ?', whereArgs: [criancaId]);
+    return List.generate(maps.length, (i) => VacinaAplicada.fromMap(maps[i]));
+  }
+
+  Future<void> deleteVaccine(int criancaId, String nomeVacina) async {
+    final db = await database;
+    await db.delete('vacinas_aplicadas', where: 'criancaId = ? AND nomeVacina = ?', whereArgs: [criancaId, nomeVacina]);
+  }
+
 }

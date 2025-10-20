@@ -82,8 +82,11 @@ class _HomePageState extends State<HomePage> {
                   // O toque normal continua a levar para a página de detalhes
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => DetailsPage(childName: child.nome)),
+                    MaterialPageRoute(
+                      builder: (context) => DetailsPage(crianca: child),
+                    ),
                   );
+                  // ▲▲▲ FIM DA ALTERAÇÃO ▲▲▲
                 },
                 trailing: PopupMenuButton(
                   itemBuilder: (context) => [

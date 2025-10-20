@@ -1,24 +1,19 @@
-// lib/main.dart - CÓDIGO CORRIGIDO PARA DESKTOP E MOBILE
+// lib/main.dart - CÓDIGO CORRIGIDO COM LOCALIZAÇÃO
 
 import 'package:flutter/material.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // Importa o pacote FFI
-import 'dart:io'; // Importa o pacote para verificar a plataforma (Desktop/Mobile)
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io';
 import 'screens/home_page.dart';
+// Importa o pacote de localização que acabámos de adicionar
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
-  // === INÍCIO DA CORREÇÃO ===
-
-  // Garante que o Flutter está inicializado antes de qualquer outra coisa
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Verifica se a plataforma NÃO é Android nem iOS
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    // Inicializa o sqflite para ambientes FFI (desktop)
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
-
-  // === FIM DA CORREÇÃO ===
 
   runApp(const MyApp());
 }
@@ -34,6 +29,17 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.red,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      // === INÍCIO DA CORREÇÃO ===
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'), // Suporte para Português do Brasil
+        // Pode adicionar outros idiomas aqui se quiser no futuro
+      ],
+      // === FIM DA CORREÇÃO ===
       home: const HomePage(),
     );
   }
