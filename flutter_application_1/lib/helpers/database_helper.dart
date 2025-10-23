@@ -90,7 +90,11 @@ class DatabaseHelper {
       whereArgs: [vacina.criancaId, vacina.nomeVacina],
     );
     if (existing.isNotEmpty) {
-      await db.update('vacinas_aplicadas', vacina.toMap(), where: 'id = ?', whereArgs: [existing.first['id']]);
+
+      final dataUpdate = vacina.toMap();
+      dataUpdate['id'] = existing.first['id'];
+
+      await db.update('vacinas_aplicadas', dataUpdate, where: 'id = ?', whereArgs: [existing.first['id']]);
     } else {
       await db.insert('vacinas_aplicadas', vacina.toMap());
     }

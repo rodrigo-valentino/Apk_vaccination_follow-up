@@ -1,4 +1,4 @@
-// lib/services/servico_vacinas.dart
+// lib/services/servico_vacinas.dart - CÓDIGO ATUALIZADO
 
 import 'package:intl/intl.dart';
 import '../data/lista_vacinas.dart';
@@ -6,61 +6,95 @@ import '../models/crianca.dart';
 import '../models/status_vacina.dart';
 import '../models/vacina_aplicada.dart';
 import '../models/vacina_status.dart';
+import '../models/dados_detalhados_crianca.dart';
 
 class ServicoVacinas {
+  // --- Funções de Cálculo de Idade ---
 
-  // Calcula a idade da criança em meses completos
   int _calcularIdadeEmMeses(DateTime dataNascimento) {
     final hoje = DateTime.now();
-    // Anos de diferença * 12 + meses de diferença
     int meses = (hoje.year - dataNascimento.year) * 12 + hoje.month - dataNascimento.month;
-
-    // Se o dia de hoje for anterior ao dia do aniversário no mês corrente,
-    // significa que o mês ainda não foi completado.
     if (hoje.day < dataNascimento.day) {
       meses--;
     }
     return meses;
   }
 
-  // A função principal que processa a lista de vacinas
-  List<VacinaComStatus> calcularStatusDeTodasAsVacinas({
+  // ▼▼▼ NOVA FUNÇÃO ▼▼▼
+  // Calcula a idade detalhada para exibição (ex: "1 ano e 2 meses")
+  String calcularIdadeDetalhada(String dataNascimentoStr) {
+    try {
+      final dataNascimento = DateFormat('dd/MM/yyyy').parse(dataNascimentoStr);
+      final hoje = DateTime.now();
+
+      final anos = hoje.year - dataNascimento.year;
+      final meses = hoje.month - dataNascimento.month;
+      final dias = hoje.day - dataNascimento.day;
+
+      int anosFinal = anos;
+      int mesesFinal = meses;
+
+      if (dias < 0) {
+        mesesFinal--;
+      }
+      if (mesesFinal < 0) {
+        anosFinal--;
+        mesesFinal += 12;
+      }
+      
+      if (anosFinal > 0) {
+        final pluralAnos = anosFinal == 1 ? "ano" : "anos";
+        final pluralMeses = mesesFinal == 1 ? "mês" : "meses";
+        return "$anosFinal $pluralAnos e $mesesFinal $pluralMeses";
+      } else {
+         final pluralMeses = mesesFinal == 1 ? "mês" : "meses";
+        return "$mesesFinal $pluralMeses";
+      }
+    } catch (e) {
+      return "Idade inválida";
+    }
+  }
+
+  // --- Funções de Cálculo de Status ---
+
+  // ▼▼▼ NOVA FUNÇÃO ▼▼▼
+  // Determina o status geral da criança com base na lista de status de vacinas
+  StatusVacina getStatusGeral(List<VacinaComStatus> listaStatus) {
+    if (listaStatus.any((v) => v.status == StatusVacina.Atrasado)) {
+      return StatusVacina.Atrasado;
+    }
+    if (listaStatus.any((v) => v.status == StatusVacina.Pendente)) {
+      return StatusVacina.Pendente;
+    }
+    // Se não há atrasadas nem pendentes, consideramos "Vacinado" para o status geral
+    return StatusVacina.Vacinado;
+  }
+  
+  // A função principal que processa a lista de vacinas (continua igual)
+  // Mude o tipo de retorno da função
+  DadosDetalhadosCrianca calcularStatusDeTodasAsVacinas({
     required Crianca crianca,
     required List<VacinaAplicada> vacinasAplicadas,
   }) {
-    // Primeiro, parseamos a data de nascimento da criança que está como String
-    // Usamos um try-catch para o caso de a data estar num formato inválido
     DateTime dataNascimento;
     try {
       dataNascimento = DateFormat('dd/MM/yyyy').parse(crianca.dataNascimento);
     } catch (e) {
-      // Se o formato for inválido, não podemos calcular. Retornamos uma lista vazia.
-      print("Erro ao parsear a data de nascimento: ${crianca.dataNascimento}");
-      return [];
+      // Se a data falhar, retorna um objeto vazio
+      return DadosDetalhadosCrianca(listaStatusVacinas: [], idadeEmMeses: 0);
     }
 
-    final int idadeEmMeses = _calcularIdadeEmMeses(dataNascimento);
-
-    // Converte a lista de vacinas aplicadas num mapa para uma busca rápida e eficiente
-    final mapaVacinasAplicadas = {
-      for (var v in vacinasAplicadas) v.nomeVacina: v.dataAplicacao
-    };
-
-    // Lista final que será retornada
+    final int idadeEmMeses = _calcularIdadeEmMeses(dataNascimento); // Já calculamos isto!
+    final mapaVacinasAplicadas = { for (var v in vacinasAplicadas) v.nomeVacina: v.dataAplicacao };
     List<VacinaComStatus> statusFinal = [];
 
-    // Itera sobre a lista oficial de vacinas do calendário
     for (final vacinaInfo in calendarioVacinal) {
       StatusVacina status;
       String? dataAplicacao;
-
-      // 1. Verifica se a vacina já foi aplicada
       if (mapaVacinasAplicadas.containsKey(vacinaInfo.nome)) {
         status = StatusVacina.Vacinado;
         dataAplicacao = mapaVacinasAplicadas[vacinaInfo.nome];
-      }
-      // 2. Se não foi aplicada, verifica a idade da criança
-      else {
+      } else {
         if (idadeEmMeses >= vacinaInfo.idadeMaximaMeses) {
           status = StatusVacina.Atrasado;
         } else if (idadeEmMeses >= vacinaInfo.idadeMinimaMeses) {
@@ -69,7 +103,6 @@ class ServicoVacinas {
           status = StatusVacina.ADia;
         }
       }
-
       statusFinal.add(
         VacinaComStatus(
           info: vacinaInfo,
@@ -79,6 +112,10 @@ class ServicoVacinas {
       );
     }
 
-    return statusFinal;
+    // Mude a linha final de 'return'
+    return DadosDetalhadosCrianca(
+      listaStatusVacinas: statusFinal,
+      idadeEmMeses: idadeEmMeses,
+    );
   }
 }

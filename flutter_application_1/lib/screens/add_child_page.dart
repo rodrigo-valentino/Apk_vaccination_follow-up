@@ -1,11 +1,12 @@
 // lib/screens/add_child_page.dart - CÓDIGO ATUALIZADO
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Import necessário para o maxLength
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart'; // Importa o pacote da máscara
 import '../helpers/database_helper.dart';
 import '../models/crianca.dart';
 
 class AddChildPage extends StatefulWidget {
-  // Adicionamos uma variável opcional para receber a criança a ser editada
   final Crianca? crianca;
 
   const AddChildPage({super.key, this.crianca});
@@ -20,13 +21,18 @@ class _AddChildPageState extends State<AddChildPage> {
   final _birthDateController = TextEditingController();
   final dbHelper = DatabaseHelper();
 
-  // Variável para saber se estamos a editar ou a adicionar
+  // Cria a máscara para o formato de data dd/mm/aaaa
+  final _dateMaskFormatter = MaskTextInputFormatter(
+    mask: '##/##/####',
+    filter: {"#": RegExp(r'[0-9]')},
+    type: MaskAutoCompletionType.lazy,
+  );
+
   bool get _isEditing => widget.crianca != null;
 
   @override
   void initState() {
     super.initState();
-    // Se estivermos a editar, preenchemos os campos com os dados existentes
     if (_isEditing) {
       _nameController.text = widget.crianca!.nome;
       _birthDateController.text = widget.crianca!.dataNascimento;
@@ -35,16 +41,15 @@ class _AddChildPageState extends State<AddChildPage> {
 
   void _saveChild() async {
     if (_formKey.currentState!.validate()) {
+      // Lógica de salvar continua a mesma...
       if (_isEditing) {
-        // Lógica de ATUALIZAÇÃO
         final updatedChild = Crianca(
-          id: widget.crianca!.id, // Mantém o mesmo ID
+          id: widget.crianca!.id,
           nome: _nameController.text,
           dataNascimento: _birthDateController.text,
         );
         await dbHelper.updateChild(updatedChild);
       } else {
-        // Lógica de CRIAÇÃO (como antes)
         final newChild = Crianca(
           nome: _nameController.text,
           dataNascimento: _birthDateController.text,
@@ -54,7 +59,7 @@ class _AddChildPageState extends State<AddChildPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Criança salva com sucesso!')),
+          const SnackBar(content: Text('Criança salva com sucesso!')),
         );
         Navigator.pop(context, true);
       }
@@ -65,7 +70,6 @@ class _AddChildPageState extends State<AddChildPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // O título da página muda se estivermos a adicionar ou a editar
         title: Text(_isEditing ? 'Editar Criança' : 'Adicionar Nova Criança'),
       ),
       body: Padding(
@@ -81,6 +85,11 @@ class _AddChildPageState extends State<AddChildPage> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.person),
                 ),
+                // ▼▼▼ MELHORIA APLICADA ▼▼▼
+                maxLength: 80, // Limita o nome a 80 caracteres
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(80),
+                ],
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Por favor, insira o nome';
@@ -97,9 +106,15 @@ class _AddChildPageState extends State<AddChildPage> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.calendar_today),
                 ),
+                // ▼▼▼ MELHORIA APLICADA ▼▼▼
+                inputFormatters: [_dateMaskFormatter], // Aplica a máscara
+                keyboardType: TextInputType.datetime, // Mostra o teclado numérico
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Por favor, insira a data';
+                  }
+                  if (value.length < 10) {
+                    return 'Por favor, preencha a data completa';
                   }
                   return null;
                 },
