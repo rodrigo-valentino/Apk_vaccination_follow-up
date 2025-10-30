@@ -1,9 +1,9 @@
-// lib/helpers/database_helper.dart - CÓDIGO COMPLETO E CORRIGIDO
+// lib/helpers/database_helper.dart
 
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/crianca.dart';
-import '../models/vacina_aplicada.dart'; // Import necessário
+import '../models/vacina_aplicada.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -22,7 +22,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'vacinacao.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -33,7 +33,9 @@ class DatabaseHelper {
       CREATE TABLE criancas(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL,
-        dataNascimento TEXT NOT NULL
+        dataNascimento TEXT NOT NULL,
+        nomeResponsavel TEXT, 
+        observacoes TEXT
       )
     ''');
     await _createVacinasTable(db);
@@ -42,6 +44,10 @@ class DatabaseHelper {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await _createVacinasTable(db);
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE criancas ADD COLUMN nomeResponsavel TEXT');
+      await db.execute('ALTER TABLE criancas ADD COLUMN observacoes TEXT');
     }
   }
 
@@ -56,9 +62,7 @@ class DatabaseHelper {
       )
     ''');
   }
-
-  // --- Métodos CRUD para Crianças ---
-
+  
   Future<int> addChild(Crianca crianca) async {
     final db = await database;
     return await db.insert('criancas', crianca.toMap());
@@ -80,8 +84,6 @@ class DatabaseHelper {
     return await db.delete('criancas', where: 'id = ?', whereArgs: [id]);
   }
 
-  // --- Métodos CRUD para Vacinas Aplicadas ---
-
   Future<void> saveVaccine(VacinaAplicada vacina) async {
     final db = await database;
     final existing = await db.query(
@@ -90,11 +92,14 @@ class DatabaseHelper {
       whereArgs: [vacina.criancaId, vacina.nomeVacina],
     );
     if (existing.isNotEmpty) {
-
-      final dataUpdate = vacina.toMap();
-      dataUpdate['id'] = existing.first['id'];
-
-      await db.update('vacinas_aplicadas', dataUpdate, where: 'id = ?', whereArgs: [existing.first['id']]);
+      final dataToUpdate = vacina.toMap();
+      dataToUpdate.remove('id');
+      await db.update(
+        'vacinas_aplicadas',
+        dataToUpdate,
+        where: 'id = ?',
+        whereArgs: [existing.first['id']],
+      );
     } else {
       await db.insert('vacinas_aplicadas', vacina.toMap());
     }
@@ -110,5 +115,4 @@ class DatabaseHelper {
     final db = await database;
     await db.delete('vacinas_aplicadas', where: 'criancaId = ? AND nomeVacina = ?', whereArgs: [criancaId, nomeVacina]);
   }
-
 }

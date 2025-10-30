@@ -1,6 +1,8 @@
-// lib/screens/details_page.dart - CÓDIGO ATUALIZADO (EDIÇÃO/REMOÇÃO/RESTRIÇÃO)
+// lib/screens/details_page.dart - CÓDIGO FINAL COM EDIÇÃO IN-PLACE
 
 import 'package:flutter/material.dart';
+// ignore: unnecessary_import
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../helpers/database_helper.dart';
 import '../models/crianca.dart';
@@ -8,11 +10,10 @@ import '../models/vacina_aplicada.dart';
 import '../models/vacina_status.dart';
 import '../models/status_vacina.dart';
 import '../services/servico_vacinas.dart';
-import '../models/dados_detalhados_crianca.dart'; // Importa o novo modelo
+import '../models/dados_detalhados_crianca.dart';
 
 class DetailsPage extends StatefulWidget {
-  final Crianca crianca;
-
+  final Crianca crianca; 
   const DetailsPage({super.key, required this.crianca});
 
   @override
@@ -23,51 +24,40 @@ class _DetailsPageState extends State<DetailsPage> {
   final dbHelper = DatabaseHelper();
   final servicoVacinas = ServicoVacinas();
 
-  // A Future agora carrega o nosso novo objeto
+  late Crianca _criancaAtual;
   late Future<DadosDetalhadosCrianca> _dadosProcessados;
 
   @override
   void initState() {
     super.initState();
+    _criancaAtual = widget.crianca;
     _carregarDadosDasVacinas();
   }
 
   void _carregarDadosDasVacinas() {
     setState(() {
-      _dadosProcessados = _getVaccineStatusList();
+      _dadosProcessados = _getVaccineStatusList(_criancaAtual);
     });
   }
 
-  // A função agora retorna o nosso novo objeto
-  Future<DadosDetalhadosCrianca> _getVaccineStatusList() async {
-    final vacinasAplicadas = await dbHelper.getAppliedVaccines(widget.crianca.id!);
-    
-    // O serviço agora retorna o objeto com a lista E a idade
+  Future<DadosDetalhadosCrianca> _getVaccineStatusList(Crianca crianca) async {
+    final vacinasAplicadas = await dbHelper.getAppliedVaccines(crianca.id!);
     return servicoVacinas.calcularStatusDeTodasAsVacinas(
-      crianca: widget.crianca,
+      crianca: crianca,
       vacinasAplicadas: vacinasAplicadas,
     );
   }
 
-  // ▼▼▼ NOVA LÓGICA DE CLIQUE ▼▼▼
   void _onVaccineTapped(VacinaComStatus item, int idadeAtualEmMeses) {
     switch (item.status) {
-      // 1. JÁ VACINADO (Verde): Mostrar opções de Edição/Remoção
       case StatusVacina.Vacinado:
         _mostrarOpcoesEdicao(item);
         break;
-      
-      // 2. AGUARDANDO IDADE (Cinza): Mostrar aviso
       case StatusVacina.ADia:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('A criança ainda não tem idade para esta vacina.'),
-            backgroundColor: Colors.blueGrey,
-          ),
+          SnackBar(content: Text('A vacina "${item.info.nome}" ainda não está disponível para aplicação.')),
         );
         break;
-
-      // 3. PENDENTE ou ATRASADO (Amarelo/Vermelho): Abrir calendário
       case StatusVacina.Pendente:
       case StatusVacina.Atrasado:
         _selecionarData(item);
@@ -75,20 +65,18 @@ class _DetailsPageState extends State<DetailsPage> {
     }
   }
 
-  // Função para mostrar o seletor de data (abrir o calendário)
   Future<void> _selecionarData(VacinaComStatus vacinaComStatus) async {
     final DateTime? dataSelecionada = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
-      lastDate: DateTime.now(), // Impede datas futuras
+      lastDate: DateTime.now(),
       locale: const Locale('pt', 'BR'),
     );
-
     if (dataSelecionada != null) {
       final dataFormatada = DateFormat('dd/MM/yyyy').format(dataSelecionada);
       final vacinaParaSalvar = VacinaAplicada(
-        criancaId: widget.crianca.id!,
+        criancaId: _criancaAtual.id!,
         nomeVacina: vacinaComStatus.info.nome,
         dataAplicacao: dataFormatada,
       );
@@ -97,117 +85,258 @@ class _DetailsPageState extends State<DetailsPage> {
     }
   }
 
-  // ▼▼▼ NOVA FUNÇÃO ▼▼▼
-  // Mostra o diálogo para Editar ou Remover
   Future<void> _mostrarOpcoesEdicao(VacinaComStatus item) async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(item.info.nome),
-        content: const Text('O que deseja fazer com esta vacina?'),
+        title: Text('Editar Vacina "${item.info.nome}"'),
+        content: const Text('O que deseja fazer?'),
         actions: [
-          TextButton(
-            child: const Text('Remover Lançamento'),
-            onPressed: () {
-              Navigator.of(context).pop(); // Fecha o diálogo
-              _removerVacina(item);
-            },
-          ),
-          TextButton(
-            child: const Text('Editar Data'),
-            onPressed: () {
-              Navigator.of(context).pop(); // Fecha o diálogo
-              _selecionarData(item); // Abre o calendário
-            },
-          ),
           TextButton(
             child: const Text('Cancelar'),
             onPressed: () => Navigator.of(context).pop(),
+          ),
+          TextButton(
+            child: const Text('Remover Registro'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _removerVacina(item);
+            },
           ),
         ],
       ),
     );
   }
 
-  // ▼▼▼ NOVA FUNÇÃO ▼▼▼
-  // Remove a data da vacina do banco de dados
-Future<void> _removerVacina(VacinaComStatus item) async {
-  await dbHelper.deleteVaccine(widget.crianca.id!, item.info.nome);
+  Future<void> _removerVacina(VacinaComStatus item) async {
+    await dbHelper.deleteVaccine(_criancaAtual.id!, item.info.nome); 
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Vacina "${item.info.nome}" removida com sucesso.')),
+    );
+    _carregarDadosDasVacinas();
+  }
 
-  if (!mounted) return; // Garante que o widget ainda está ativo
+  Future<void> _mostrarDialogoEdicaoResponsavel() async {
+    final controller = TextEditingController(text: _criancaAtual.nomeResponsavel ?? '');
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Data da vacina removida com sucesso!'),
-      backgroundColor: Colors.red,
-    ),
-  );
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar Responsável'),
+        content: TextField(
+          controller: controller,
+          maxLength: 80,
+          maxLines: 1,
+          autofocus: true,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Nome do Responsável',
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancelar'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          TextButton(
+            child: const Text('Salvar'),
+            onPressed: () async {
+              final updatedChild = Crianca(
+                id: _criancaAtual.id,
+                nome: _criancaAtual.nome,
+                dataNascimento: _criancaAtual.dataNascimento,
+                nomeResponsavel: controller.text,
+                observacoes: _criancaAtual.observacoes,
+              );
+              await dbHelper.updateChild(updatedChild);
+              if (!mounted) return;
+              setState(() {
+                _criancaAtual = updatedChild; 
+              });
+              // ignore: use_build_context_synchronously
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
-  _carregarDadosDasVacinas();
-}
+  Future<void> _mostrarDialogoEdicaoObs() async {
+    final controller = TextEditingController(text: _criancaAtual.observacoes ?? '');
 
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar Observações'),
+        content: TextField(
+          controller: controller,
+          maxLength: 500,
+          maxLines: 5,
+          autofocus: true,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Observações',
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancelar'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          TextButton(
+            child: const Text('Salvar'),
+            onPressed: () async {
+              final updatedChild = Crianca(
+                id: _criancaAtual.id,
+                nome: _criancaAtual.nome,
+                dataNascimento: _criancaAtual.dataNascimento,
+                nomeResponsavel: _criancaAtual.nomeResponsavel,
+                observacoes: controller.text,
+              );
+              await dbHelper.updateChild(updatedChild);
+              if (!mounted) return;
+              setState(() {
+                _criancaAtual = updatedChild;
+              });
+              // ignore: use_build_context_synchronously
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.crianca.nome),
+        title: Text(_criancaAtual.nome),
       ),
-      // O FutureBuilder agora usa o nosso novo objeto
       body: FutureBuilder<DadosDetalhadosCrianca>(
         future: _dadosProcessados,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting) {  
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Erro ao carregar vacinas: ${snapshot.error}'));
+            return const Center(child: Text('Erro ao carregar dados'));
           }
           if (!snapshot.hasData || snapshot.data!.listaStatusVacinas.isEmpty) {
-            return const Center(child: Text('Não foi possível calcular o status das vacinas.'));
+            return const Center(child: Text('Nenhum dado disponível'));
           }
 
-          // Obtemos a lista E a idade
           final listaDeStatus = snapshot.data!.listaStatusVacinas;
           final idadeAtualEmMeses = snapshot.data!.idadeEmMeses;
 
-          return ListView.builder(
-            itemCount: listaDeStatus.length,
-            itemBuilder: (context, index) {
-              final item = listaDeStatus[index];
-              return _buildVacinaListTile(item, idadeAtualEmMeses); // Passa a idade
-            },
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoCard(_criancaAtual), 
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  'Caderneta de Vacinas',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: listaDeStatus.length,
+                  itemBuilder: (context, index) {
+                    final item = listaDeStatus[index];
+                    return _buildVacinaListTile(item, idadeAtualEmMeses);
+                  },
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  // O ListTile agora recebe a idade para a lógica de clique
+  Widget _buildInfoCard(Crianca crianca) {
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.supervisor_account, color: Colors.blueGrey, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Responsável: ${crianca.nomeResponsavel ?? 'Nenhum'}",
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20, color: Colors.blueGrey),
+                  onPressed: _mostrarDialogoEdicaoResponsavel,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Editar Responsável',
+                ),
+              ],
+            ),
+            
+            const Divider(height: 20),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.comment, color: Colors.blueGrey, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Observações: ${crianca.observacoes ?? 'Nenhuma'}",
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20, color: Colors.blueGrey),
+                  onPressed: _mostrarDialogoEdicaoObs,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Editar Observações',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildVacinaListTile(VacinaComStatus item, int idadeAtualEmMeses) {
     final cor = _getCorDoStatus(item.status);
     final icone = _getIconeDoStatus(item.status);
     String subtitulo;
-
     if (item.status == StatusVacina.Vacinado) {
       subtitulo = 'Aplicada em: ${item.dataAplicacao}';
     } else {
       subtitulo = 'Status: ${_getStatusText(item.status)}';
     }
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: cor.withAlpha(38), // Fundo suave
+      color: cor.withAlpha(38),
       child: ListTile(
         leading: Icon(icone, color: cor, size: 30),
         title: Text(item.info.nome, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitulo),
-        onTap: () => _onVaccineTapped(item, idadeAtualEmMeses), // Chama a nova função de clique
+        onTap: () => _onVaccineTapped(item, idadeAtualEmMeses),
       ),
     );
   }
 
-  // Funções auxiliares (sem alteração)
   Color _getCorDoStatus(StatusVacina status) {
     switch (status) {
       case StatusVacina.Vacinado: return Colors.green;

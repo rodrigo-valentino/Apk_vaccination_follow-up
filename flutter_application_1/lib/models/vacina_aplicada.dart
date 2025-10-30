@@ -2,7 +2,7 @@
 
 class VacinaAplicada {
   int? id;
-  final int criancaId; // Chave estrangeira para ligar à criança
+  final int criancaId; 
   final String nomeVacina;
   String dataAplicacao;
 

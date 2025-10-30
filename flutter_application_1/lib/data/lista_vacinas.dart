@@ -1,10 +1,9 @@
 // lib/data/lista_vacinas.dart
 
-// Uma classe para representar a informação estática de cada vacina
 class VacinaInfo {
   final String nome;
-  final int idadeMinimaMeses; // Idade para ficar "Pendente" (amarelo)
-  final int idadeMaximaMeses; // Idade para ficar "Atrasado" (vermelho)
+  final int idadeMinimaMeses; 
+  final int idadeMaximaMeses; 
 
   const VacinaInfo({
     required this.nome,
@@ -13,7 +12,6 @@ class VacinaInfo {
   });
 }
 
-// A lista oficial de todas as vacinas do programa
 const List<VacinaInfo> calendarioVacinal = [
   VacinaInfo(nome: "BCG", idadeMinimaMeses: 0, idadeMaximaMeses: 1),
   VacinaInfo(nome: "Hepatite B", idadeMinimaMeses: 0, idadeMaximaMeses: 1),

@@ -1,14 +1,12 @@
-// lib/screens/add_child_page.dart - CÓDIGO ATUALIZADO
-
+// lib/screens/add_child_page.dart 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Import necessário para o maxLength
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart'; // Importa o pacote da máscara
+import 'package:flutter/services.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../helpers/database_helper.dart';
 import '../models/crianca.dart';
 
 class AddChildPage extends StatefulWidget {
   final Crianca? crianca;
-
   const AddChildPage({super.key, this.crianca});
 
   @override
@@ -17,16 +15,19 @@ class AddChildPage extends StatefulWidget {
 
 class _AddChildPageState extends State<AddChildPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _birthDateController = TextEditingController();
   final dbHelper = DatabaseHelper();
 
-  // Cria a máscara para o formato de data dd/mm/aaaa
+  // Controladores para todos os campos
+  final _nameController = TextEditingController();
+  final _birthDateController = TextEditingController();
+  final _responsavelController = TextEditingController(); 
+  final _obsController = TextEditingController();         
+
   final _dateMaskFormatter = MaskTextInputFormatter(
     mask: '##/##/####',
     filter: {"#": RegExp(r'[0-9]')},
     type: MaskAutoCompletionType.lazy,
-  );
+  );      
 
   bool get _isEditing => widget.crianca != null;
 
@@ -36,27 +37,40 @@ class _AddChildPageState extends State<AddChildPage> {
     if (_isEditing) {
       _nameController.text = widget.crianca!.nome;
       _birthDateController.text = widget.crianca!.dataNascimento;
+      _responsavelController.text = widget.crianca!.nomeResponsavel ?? ''; 
+      _obsController.text = widget.crianca!.observacoes ?? '';         
     }
+  }
+  
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _birthDateController.dispose();
+    _responsavelController.dispose();
+    _obsController.dispose();
+    super.dispose();
   }
 
   void _saveChild() async {
     if (_formKey.currentState!.validate()) {
-      // Lógica de salvar continua a mesma...
       if (_isEditing) {
         final updatedChild = Crianca(
           id: widget.crianca!.id,
           nome: _nameController.text,
           dataNascimento: _birthDateController.text,
+          nomeResponsavel: _responsavelController.text, 
+          observacoes: _obsController.text,             
         );
         await dbHelper.updateChild(updatedChild);
       } else {
         final newChild = Crianca(
           nome: _nameController.text,
           dataNascimento: _birthDateController.text,
+          nomeResponsavel: _responsavelController.text, 
+          observacoes: _obsController.text,             
         );
         await dbHelper.addChild(newChild);
       }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Criança salva com sucesso!')),
@@ -72,62 +86,87 @@ class _AddChildPageState extends State<AddChildPage> {
       appBar: AppBar(
         title: Text(_isEditing ? 'Editar Criança' : 'Adicionar Nova Criança'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome Completo',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome Completo',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  maxLength: 80,
+                  inputFormatters: [LengthLimitingTextInputFormatter(80)],
+                  validator: (value) {       
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira o nome completo';
+                    }
+                    if (value.length < 3) {
+                      return 'Nome deve ter pelo menos 3 caracteres';
+                    }
+                    if (!value.contains(' ')) {
+                      return 'Insira o nome completo com sobrenome';
+                    }
+                    return null;
+                  },
                 ),
-                // ▼▼▼ MELHORIA APLICADA ▼▼▼
-                maxLength: 80, // Limita o nome a 80 caracteres
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(80),
-                ],
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira o nome';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _birthDateController,
-                decoration: const InputDecoration(
-                  labelText: 'Data de Nascimento',
-                  hintText: 'dd/mm/aaaa',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _birthDateController,
+                  decoration: const InputDecoration(
+                    labelText: 'Data de Nascimento',
+                    hintText: 'dd/mm/aaaa',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.calendar_today),
+                  ),
+                  inputFormatters: [_dateMaskFormatter],
+                  keyboardType: TextInputType.datetime,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira a data de nascimento';
+                    }
+                    if (value.length != 10) {
+                      return 'Data deve estar no formato dd/mm/aaaa';
+                    }
+                    return null;
+                  },
                 ),
-                // ▼▼▼ MELHORIA APLICADA ▼▼▼
-                inputFormatters: [_dateMaskFormatter], // Aplica a máscara
-                keyboardType: TextInputType.datetime, // Mostra o teclado numérico
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira a data';
-                  }
-                  if (value.length < 10) {
-                    return 'Por favor, preencha a data completa';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _saveChild,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _responsavelController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do Responsável (Opcional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.supervisor_account),
+                  ),
+                  maxLength: 80,
+                  inputFormatters: [LengthLimitingTextInputFormatter(80)],
                 ),
-                child: const Text('Salvar'),
-              ),
-            ],
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _obsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Observações (Opcional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.comment),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed: _saveChild,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: const Text('Salvar'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

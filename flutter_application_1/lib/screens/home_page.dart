@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 // ignore: unused_import
-import 'package:flutter_application_1/models/vacina_status.dart'; // Importa o enum StatusVacina
-import 'package:intl/intl.dart'; // Import necessário para o parse da data
+import 'package:flutter_application_1/models/vacina_status.dart'; 
+import 'package:intl/intl.dart'; 
 import '../helpers/database_helper.dart';
 import '../models/crianca.dart';
 import '../models/crianca_status_geral.dart';
@@ -10,7 +10,6 @@ import '../services/servico_vacinas.dart';
 import 'add_child_page.dart';
 import 'details_page.dart';
 
-// Enum para controlar as nossas opções de ordenação
 enum OpcoesOrdenacao { alfabetica, status, idade }
 
 class HomePage extends StatefulWidget {
@@ -24,19 +23,16 @@ class _HomePageState extends State<HomePage> {
   final dbHelper = DatabaseHelper();
   final servicoVacinas = ServicoVacinas();
 
-  // Controladores de estado
   bool _isLoading = true;
   OpcoesOrdenacao _ordenacaoAtual = OpcoesOrdenacao.alfabetica;
   final TextEditingController _searchController = TextEditingController();
 
-  // Listas de estado
   List<CriancaComStatus> _listaCompleta = [];
   List<CriancaComStatus> _listaFiltrada = [];
 
   @override
   void initState() {
     super.initState();
-    // Adiciona um "ouvinte" à barra de pesquisa
     _searchController.addListener(_aplicarFiltrosESort);
     _carregarDadosIniciais();
   }
@@ -47,7 +43,6 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // 1. CARREGAR DADOS
   Future<void> _carregarDadosIniciais() async {
     setState(() => _isLoading = true);
 
@@ -64,12 +59,11 @@ class _HomePageState extends State<HomePage> {
       final idadeDetalhada = servicoVacinas.calcularIdadeDetalhada(crianca.dataNascimento);
       final statusGeral = servicoVacinas.getStatusGeral(dadosProcessados.listaStatusVacinas);
 
-      // Parse da data de nascimento para ordenação
       DateTime dataNascimento;
       try {
         dataNascimento = DateFormat('dd/MM/yyyy').parse(crianca.dataNascimento);
       } catch (e) {
-        dataNascimento = DateTime(1900); // Failsafe
+        dataNascimento = DateTime(1900); 
       }
 
       listaProcessada.add(
@@ -77,7 +71,7 @@ class _HomePageState extends State<HomePage> {
           crianca: crianca,
           idadeDetalhada: idadeDetalhada,
           statusGeral: statusGeral,
-          dataNascimento: dataNascimento, // Passa a data
+          dataNascimento: dataNascimento, 
         ),
       );
     }
@@ -85,25 +79,22 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _listaCompleta = listaProcessada;
       _isLoading = false;
-      _aplicarFiltrosESort(); // Aplica o filtro e a ordenação inicial
+      _aplicarFiltrosESort();
     });
   }
 
-  // 2. APLICAR FILTROS E ORDENAÇÃO
   void _aplicarFiltrosESort() {
     final String query = _searchController.text.toLowerCase();
     List<CriancaComStatus> listaTemp = [];
 
-    // A. Aplicar filtro de pesquisa
     if (query.isNotEmpty) {
       listaTemp = _listaCompleta
           .where((item) => item.crianca.nome.toLowerCase().contains(query))
           .toList();
     } else {
-      listaTemp = _listaCompleta.toList(); // Usa uma cópia da lista completa
+      listaTemp = _listaCompleta.toList(); 
     }
 
-    // B. Aplicar ordenação
     switch (_ordenacaoAtual) {
       case OpcoesOrdenacao.alfabetica:
         listaTemp.sort((a, b) =>
@@ -114,7 +105,6 @@ class _HomePageState extends State<HomePage> {
             _getStatusWeight(a.statusGeral).compareTo(_getStatusWeight(b.statusGeral)));
         break;
       case OpcoesOrdenacao.idade:
-        // Mais novos primeiro
         listaTemp.sort((a, b) => b.dataNascimento.compareTo(a.dataNascimento));
         break;
     }
@@ -122,14 +112,12 @@ class _HomePageState extends State<HomePage> {
     setState(() => _listaFiltrada = listaTemp);
   }
 
-  // 3. CONSTRUIR A INTERFACE (UI)
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crianças Cadastradas'),
         actions: [
-          // Menu de Ordenação
           PopupMenuButton<OpcoesOrdenacao>(
             icon: const Icon(Icons.sort),
             tooltip: 'Ordenar por',
@@ -158,9 +146,7 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Column(
         children: [
-          // Barra de Pesquisa
           _buildSearchBar(),
-          // Lista
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -176,7 +162,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Widget da Barra de Pesquisa
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -199,7 +184,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Widget da Lista de Crianças
   Widget _buildChildrenList() {
     if (_listaFiltrada.isEmpty) {
       return Center(
@@ -217,7 +201,6 @@ class _HomePageState extends State<HomePage> {
         final child = item.crianca;
         final corStatus = _getCorDoStatus(item.statusGeral);
 
-        // O Card/ListTile continua igual
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           color: corStatus.withAlpha(38), // 0.15 * 255 = 38
@@ -250,13 +233,11 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
-
-  // --- Funções Auxiliares ---
   
   void _navigateAndRefresh(Widget page) async {
     final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => page));
     if (result == true) {
-      _carregarDadosIniciais(); // Recarrega tudo do banco de dados
+      _carregarDadosIniciais();
     }
   }
 
@@ -272,7 +253,7 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               dbHelper.deleteChild(child.id!);
               Navigator.of(context).pop();
-              _carregarDadosIniciais(); // Recarrega tudo do banco de dados
+              _carregarDadosIniciais();
             },
             child: const Text('Excluir'),
           ),
@@ -281,7 +262,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Dá um "peso" a cada status para a ordenação
   int _getStatusWeight(StatusVacina status) {
     switch (status) {
       case StatusVacina.Atrasado: return 0;

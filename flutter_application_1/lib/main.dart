@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io';
 import 'screens/home_page.dart';
-// Importa o pacote de localização que acabámos de adicionar
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
@@ -29,17 +28,14 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.red,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // === INÍCIO DA CORREÇÃO ===
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('pt', 'BR'), // Suporte para Português do Brasil
-        // Pode adicionar outros idiomas aqui se quiser no futuro
+        Locale('pt', 'BR'),
       ],
-      // === FIM DA CORREÇÃO ===
       home: const HomePage(),
     );
   }

@@ -1,4 +1,4 @@
-// lib/services/servico_vacinas.dart - CÓDIGO ATUALIZADO
+// lib/services/servico_vacinas.dart
 
 import 'package:intl/intl.dart';
 import '../data/lista_vacinas.dart';
@@ -9,7 +9,6 @@ import '../models/vacina_status.dart';
 import '../models/dados_detalhados_crianca.dart';
 
 class ServicoVacinas {
-  // --- Funções de Cálculo de Idade ---
 
   int _calcularIdadeEmMeses(DateTime dataNascimento) {
     final hoje = DateTime.now();
@@ -20,8 +19,6 @@ class ServicoVacinas {
     return meses;
   }
 
-  // ▼▼▼ NOVA FUNÇÃO ▼▼▼
-  // Calcula a idade detalhada para exibição (ex: "1 ano e 2 meses")
   String calcularIdadeDetalhada(String dataNascimentoStr) {
     try {
       final dataNascimento = DateFormat('dd/MM/yyyy').parse(dataNascimentoStr);
@@ -55,10 +52,6 @@ class ServicoVacinas {
     }
   }
 
-  // --- Funções de Cálculo de Status ---
-
-  // ▼▼▼ NOVA FUNÇÃO ▼▼▼
-  // Determina o status geral da criança com base na lista de status de vacinas
   StatusVacina getStatusGeral(List<VacinaComStatus> listaStatus) {
     if (listaStatus.any((v) => v.status == StatusVacina.Atrasado)) {
       return StatusVacina.Atrasado;
@@ -66,12 +59,9 @@ class ServicoVacinas {
     if (listaStatus.any((v) => v.status == StatusVacina.Pendente)) {
       return StatusVacina.Pendente;
     }
-    // Se não há atrasadas nem pendentes, consideramos "Vacinado" para o status geral
     return StatusVacina.Vacinado;
   }
   
-  // A função principal que processa a lista de vacinas (continua igual)
-  // Mude o tipo de retorno da função
   DadosDetalhadosCrianca calcularStatusDeTodasAsVacinas({
     required Crianca crianca,
     required List<VacinaAplicada> vacinasAplicadas,
@@ -80,11 +70,10 @@ class ServicoVacinas {
     try {
       dataNascimento = DateFormat('dd/MM/yyyy').parse(crianca.dataNascimento);
     } catch (e) {
-      // Se a data falhar, retorna um objeto vazio
       return DadosDetalhadosCrianca(listaStatusVacinas: [], idadeEmMeses: 0);
     }
 
-    final int idadeEmMeses = _calcularIdadeEmMeses(dataNascimento); // Já calculamos isto!
+    final int idadeEmMeses = _calcularIdadeEmMeses(dataNascimento); 
     final mapaVacinasAplicadas = { for (var v in vacinasAplicadas) v.nomeVacina: v.dataAplicacao };
     List<VacinaComStatus> statusFinal = [];
 
@@ -112,7 +101,6 @@ class ServicoVacinas {
       );
     }
 
-    // Mude a linha final de 'return'
     return DadosDetalhadosCrianca(
       listaStatusVacinas: statusFinal,
       idadeEmMeses: idadeEmMeses,
