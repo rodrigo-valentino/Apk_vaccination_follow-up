@@ -1,0 +1,54 @@
+name: VaxGestor
+description: "Aplicativo Flutter para acompanhamento vacinal infantil, com registro de vacinas e status."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Banco de dados local
+  sqflite: ^2.3.3
+  path: ^1.9.0
+
+  # UI e internacionalização
+  cupertino_icons: ^1.0.6
+  sqflite_common_ffi: ^2.3.6
+  intl: ^0.20.2
+  flutter_localizations:
+    sdk: flutter
+  mask_text_input_formatter: ^2.9.0
+
+  #notificações
+  flutter_local_notifications: ^17.1.2
+  flutter_timezone: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # O pacote está no lugar certo (aqui)
+  flutter_launcher_icons: ^0.13.1
+
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  #   - assets/images/logo.png
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: assets/fonts/Roboto-Regular.ttf
+
+flutter_launcher_icons:
+  android: true    
+  image_path: "Assets/logo_foreground.png" 
+
+  adaptive_icon_background: "#FFFFFF" # Cor de fundo (branco)
+  adaptive_icon_foreground: "Assets/logo_foreground.png" # Ícone principal
